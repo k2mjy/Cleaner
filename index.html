@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✨ 프리미엄 청소당번 뽑기</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    * { font-family: 'Pretendard', sans-serif; }
+    
+    .glass-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .ball-pop {
+      animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes pop {
+      0% { opacity: 0; transform: scale(0.3) translateY(20px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen flex items-center justify-center p-4">
+
+  <div class="glass-card max-w-lg w-full rounded-3xl p-8 shadow-2xl text-center space-y-6 border border-white">
+    <!-- 헤더 -->
+    <div>
+      <span class="inline-block p-3 bg-indigo-100 text-indigo-600 rounded-2xl mb-3">
+        <i class="fa-solid me-0 fa-broom text-2xl"></i>
+      </span>
+      <h1 class="text-3xl font-black text-gray-800 tracking-tight">오늘의 청소당번</h1>
+      <p class="text-gray-500 text-sm mt-1">1번부터 30번 학생 중 랜덤 5명을 뽑습니다.</p>
+    </div>
+
+    <!-- 추첨 버튼 -->
+    <button id="drawBtn" onclick="startDraw()" 
+      class="w-full py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-bold text-lg rounded-2xl shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
+      <i class="fa-solid fa-dice text-xl"></i>
+      <span>당번 추첨 시작하기</span>
+    </button>
+
+    <!-- 결과 표시 영역 -->
+    <div id="resultContainer" class="min-h-[120px] bg-slate-50/80 rounded-2xl p-4 border border-slate-100 flex items-center justify-center flex-wrap gap-3">
+      <p id="placeholderText" class="text-gray-400 text-sm">
+        <i class="fa-regular fa-face-smile mb-1 text-lg block"></i>
+        버튼을 눌러 당번을 추첨해주세요!
+      </p>
+    </div>
+
+    <!-- 푸터 옵션 -->
+    <div class="flex justify-between items-center text-xs text-gray-400 pt-2 border-t border-gray-100">
+      <span id="drawCount">누적 추첨: 0회</span>
+      <button onclick="resetApp()" class="hover:text-gray-600 transition-colors">
+        <i class="fa-solid fa-rotate-right me-1"></i>초기화
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let count = 0;
+
+    function startDraw() {
+      // 1. SweetAlert2로 카운트다운 진행
+      let timerInterval;
+      Swal.fire({
+        title: '당번 추첨 중...',
+        html: '<b>3</b> 초 후 결과가 공개됩니다!',
+        timer: 1500,
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+          const timer = Swal.getPopup().querySelector('b');
+          timerInterval = setInterval(() => {
+            const timeLeft = Math.ceil(Swal.getTimerLeft() / 500);
+            if (timer) timer.textContent = timeLeft;
+          }, 100);
+        },
+        willClose: () => {
+          clearInterval(timerInterval);
+        }
+      }).then((result) => {
+        if (result.dismiss === Swal.DismissReason.timer) {
+          executeSelection();
+        }
+      });
+    }
+
+    function executeSelection() {
+      // 1~30 번호 중 중복 없이 5명 추출
+      const numbers = Array.from({ length: 30 }, (_, i) => i + 1);
+      const selected = [];
+      for (let i = 0; i < 5; i++) {
+        const randomIndex = Math.floor(Math.random() * numbers.length);
+        selected.push(numbers.splice(randomIndex, 1)[0]);
+      }
+      selected.sort((a, b) => a - b);
+
+      // DOM 업데이트
+      const container = document.getElementById('resultContainer');
+      container.innerHTML = '';
+
+      const colors = [
+        'from-blue-500 to-indigo-500',
+        'from-purple-500 to-pink-500',
+        'from-emerald-400 to-teal-500',
+        'from-orange-400 to-amber-500',
+        'from-rose-500 to-red-500'
+      ];
+
+      selected.forEach((num, index) => {
+        const ball = document.createElement('div');
+        ball.className = `ball-pop w-14 h-14 rounded-2xl bg-gradient-to-br ${colors[index]} text-white font-extrabold text-lg flex items-center justify-center shadow-lg shadow-indigo-100 border border-white/20`;
+        ball.style.animationDelay = `${index * 0.12}s`;
+        ball.innerHTML = `${num}<span class="text-xs font-normal">번</span>`;
+        container.appendChild(ball);
+      });
+
+      // 축하 효과 (Confetti)
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.7 }
+      });
+
+      // SweetAlert2 완성 알림
+      Swal.fire({
+        icon: 'success',
+        title: '추첨 완료!',
+        text: `당첨 번호: ${selected.join(', ')}번`,
+        confirmButtonText: '확인',
+        confirmButtonColor: '#6366f1'
+      });
+
+      // 카운터 증가
+      count++;
+      document.getElementById('drawCount').textContent = `누적 추첨: ${count}회`;
+    }
+
+    function resetApp() {
+      Swal.fire({
+        title: '초기화하시겠습니까?',
+        text: '추첨 결과와 기록이 모두 사라집니다.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#6366f1',
+        cancelButtonColor: '#ef4444',
+        confirmButtonText: '초기화',
+        cancelButtonText: '취소'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          document.getElementById('resultContainer').innerHTML = `
+            <p id="placeholderText" class="text-gray-400 text-sm">
+              <i class="fa-regular fa-face-smile mb-1 text-lg block"></i>
+              버튼을 눌러 당번을 추첨해주세요!
+            </p>`;
+          count = 0;
+          document.getElementById('drawCount').textContent = `누적 추첨: 0회`;
+          
+          Swal.fire({
+            title: '초기화 완료',
+            icon: 'success',
+            timer: 1000,
+            showConfirmButton: false
+          });
+        }
+      });
+    }
+  </script>
+</body>
+</html>
